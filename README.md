@@ -1,50 +1,65 @@
-# screenshot-clipboard-sync (macOS)
+# screenshot-clipboard-sync (macOS & Windows)
 
-> 🚀 **Auto-save clipboard screenshots to `/tmp` and attach the file path for instant terminal paste.**  
-> 截图自动存入 `/tmp` 临时目录，并把路径注入剪贴板，支持终端（Ghostty / iTerm2 / WezTerm / Terminal）直接右键粘贴图片路径！
+> 🚀 **Auto-save clipboard screenshots to temp directory and attach the file path for instant terminal paste.**  
+> 截图自动存入系统临时目录（macOS: `/tmp` / Windows: `%TEMP%`），并把路径注入剪贴板，支持终端（Ghostty / Windows Terminal / iTerm2 / WezTerm）直接右键粘贴图片路径！
 
 ---
 
 ## ✨ Features (特性)
 
-- ⚡ **Zero-Click Terminal Paste**: Right-click (or `Cmd+V`) in your terminal to instantly paste the latest screenshot's temporary file path (`/tmp/screenshot_YYYYMMDD_HHMMSS.png`).
+- ⚡ **Zero-Click Terminal Paste**: Right-click (or `Ctrl+V` / `Cmd+V`) in your terminal to instantly paste the latest screenshot's temporary file path.
 - 🔄 **Dual-Flavor Clipboard**: Preserves both the image format (for WeChat, Lark, Slack, Figma, etc.) and text format (for terminals and text editors).
-- 🧹 **Auto-Cleanup**: All images are saved to `/tmp`, which macOS automatically wipes on system reboot. Zero disk clutter.
-- 🎯 **Universal Compatibility**: Works with **PixPin**, **Snipaste**, **CleanShot X**, **macOS native screenshot** (`Cmd+Ctrl+Shift+4`), and browser "Copy Image".
-- 🪶 **Ultra Lightweight**: Pure native Swift, compiled to a ~70KB binary, **0% CPU** idle usage.
-- 🤖 **Auto-Start**: Managed via macOS native `LaunchAgent` — runs silently on login without extra apps or windows.
+- 🧹 **Auto-Cleanup**: All images are saved to the OS temporary directory (`/tmp` on macOS, `%TEMP%` on Windows), automatically wiped upon reboot. Zero disk clutter.
+- 🎯 **Universal Compatibility**: Works with **PixPin**, **Snipaste**, **CleanShot X**, **Windows Snipping Tool (`Win+Shift+S`)**, **macOS native screenshot (`Cmd+Ctrl+Shift+4`)**, and browser "Copy Image".
+- 🪶 **Ultra Lightweight**: Pure native implementation (Swift on macOS, Win32/.NET on Windows), **0% CPU** idle usage.
+- 🤖 **Auto-Start**:
+  - **macOS**: Managed via native `LaunchAgent`.
+  - **Windows**: Managed via Windows User Startup Registry.
 
 ---
 
-## 📦 Quick Installation (一键安装)
+## 🍏 macOS Installation (macOS 一键安装)
 
-### Option 1: Clone and install
+### One-line install via curl
+```bash
+curl -fsSL https://raw.githubusercontent.com/xy-tuoren/screenshot-clipboard-sync/main/install.sh | bash
+```
 
+### Or clone and install
 ```bash
 git clone https://github.com/xy-tuoren/screenshot-clipboard-sync.git
 cd screenshot-clipboard-sync
 ./install.sh
 ```
 
-### Option 2: One-line install via curl
+---
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/xy-tuoren/screenshot-clipboard-sync/main/install.sh | bash
+## 🪟 Windows Installation (Windows 一键安装)
+
+Open PowerShell as normal user and run:
+
+```powershell
+git clone https://github.com/xy-tuoren/screenshot-clipboard-sync.git
+cd screenshot-clipboard-sync\windows
+.\install.ps1
 ```
+
+> **Note**: Windows version uses the built-in C# compiler (`csc.exe`) available on all Windows 10/11 machines. **No Visual Studio or extra SDK installation required!**
 
 ---
 
 ## ⚙️ Terminal Setup (终端配置)
 
-To enable **Right-click to paste** in your favorite terminal:
-
-### Ghostty
-Edit `~/Library/Application Support/com.mitchellh.ghostty/config.ghostty`:
+### Ghostty (macOS / Windows / Linux)
+Edit your Ghostty config:
 ```ini
 right-click-action = copy-or-paste
 ```
 
-### iTerm2
+### Windows Terminal (Windows)
+Windows Terminal natively supports pasting on right-click or `Ctrl+V`.
+
+### iTerm2 (macOS)
 1. Go to **Settings** -> **Pointer** -> **General**.
 2. Set **Right button** to **Paste from Clipboard**.
 
@@ -67,25 +82,13 @@ return config
 
 ## 🕹️ Service Management (服务管理)
 
-* **Check status (查看运行状态)**:
-  ```bash
-  ps aux | grep screenshot-clipboard-sync
-  ```
+### macOS
+* **Stop service (停止服务)**: `launchctl unload ~/Library/LaunchAgents/com.user.screenshot-clipboard-sync.plist`
+* **Start service (启动服务)**: `launchctl load ~/Library/LaunchAgents/com.user.screenshot-clipboard-sync.plist`
+* **Uninstall (一键卸载)**: `./uninstall.sh`
 
-* **Stop service (停止服务)**:
-  ```bash
-  launchctl unload ~/Library/LaunchAgents/com.user.screenshot-clipboard-sync.plist
-  ```
-
-* **Start service (启动服务)**:
-  ```bash
-  launchctl load ~/Library/LaunchAgents/com.user.screenshot-clipboard-sync.plist
-  ```
-
-* **Uninstall (一键卸载)**:
-  ```bash
-  ./uninstall.sh
-  ```
+### Windows (PowerShell)
+* **Uninstall (一键卸载)**: `.\windows\uninstall.ps1`
 
 ---
 
