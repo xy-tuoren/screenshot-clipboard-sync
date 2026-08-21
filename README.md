@@ -88,7 +88,27 @@ return config
 * **Uninstall (一键卸载)**: `./uninstall.sh`
 
 ### Windows (PowerShell)
-* **Uninstall (一键卸载)**: `.\windows\uninstall.ps1`
+* **Check status (查看运行状态)**:
+  ```powershell
+  Get-Process -Name "screenshot-clipboard-sync" -ErrorAction SilentlyContinue
+  ```
+* **Stop service (停止服务)**:
+  ```powershell
+  Stop-Process -Name "screenshot-clipboard-sync" -Force -ErrorAction SilentlyContinue
+  ```
+* **Start service (启动服务)**:
+  ```powershell
+  Start-Process "$env:APPDATA\screenshot-clipboard-sync\screenshot-clipboard-sync.exe"
+  ```
+* **Restart service (重启服务)**:
+  ```powershell
+  Stop-Process -Name "screenshot-clipboard-sync" -Force -ErrorAction SilentlyContinue
+  Start-Process "$env:APPDATA\screenshot-clipboard-sync\screenshot-clipboard-sync.exe"
+  ```
+* **Uninstall (一键卸载)**:
+  ```powershell
+  .\windows\uninstall.ps1
+  ```
 
 ---
 
