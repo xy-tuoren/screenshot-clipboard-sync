@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -16,7 +19,40 @@ namespace ScreenshotClipboardSync
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
 
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
         private const int WM_CLIPBOARDUPDATE = 0x031D;
+
+        private static bool IsTerminalForeground()
+        {
+            try
+            {
+                IntPtr hWnd = GetForegroundWindow();
+                if (hWnd == IntPtr.Zero) return false;
+
+                uint processId;
+                GetWindowThreadProcessId(hWnd, out processId);
+                if (processId == 0) return false;
+
+                using (Process proc = Process.GetProcessById((int)processId))
+                {
+                    string name = proc.ProcessName.ToLowerInvariant();
+                    string[] terminalProcesses = {
+                        "windowsterminal", "cmd", "powershell", "pwsh", "mintty",
+                        "conhost", "alacritty", "wezterm-gui", "ghostty", "warp"
+                    };
+                    return terminalProcesses.Any(t => name.Contains(t));
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         private class HiddenClipboardForm : Form
         {
@@ -24,10 +60,10 @@ namespace ScreenshotClipboardSync
 
             public HiddenClipboardForm()
             {
-                // Create a message-only / hidden window
                 this.WindowState = FormWindowState.Minimized;
                 this.ShowInTaskbar = false;
                 this.FormBorderStyle = FormBorderStyle.None;
+                CleanupOldScreenshots();
             }
 
             protected override void OnLoad(EventArgs e)
@@ -61,7 +97,6 @@ namespace ScreenshotClipboardSync
                 {
                     _isProcessing = true;
 
-                    // Retry up to 5 times in case another app is still writing to clipboard
                     IDataObject data = null;
                     for (int i = 0; i < 5; i++)
                     {
@@ -78,10 +113,8 @@ namespace ScreenshotClipboardSync
 
                     if (data == null) return;
 
-                    // Check if clipboard contains an image
                     if (data.GetDataPresent(DataFormats.Bitmap))
                     {
-                        // Check if text is already present and if it's already our generated path
                         string currentText = null;
                         if (data.GetDataPresent(DataFormats.UnicodeText))
                         {
@@ -91,11 +124,9 @@ namespace ScreenshotClipboardSync
                         string tempDir = Path.GetTempPath();
                         if (!string.IsNullOrEmpty(currentText) && currentText.StartsWith(tempDir))
                         {
-                            // Already processed, avoid infinite loop
                             return;
                         }
 
-                        // Retrieve the image
                         using (Image image = Clipboard.GetImage())
                         {
                             if (image != null)
@@ -103,15 +134,22 @@ namespace ScreenshotClipboardSync
                                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                                 string filename = Path.Combine(tempDir, $"screenshot_{timestamp}.png");
 
-                                // Save image to Windows Temp directory (%TEMP%)
                                 image.Save(filename, ImageFormat.Png);
 
-                                // Construct dual-flavor clipboard (Image + Text file path)
+                                bool isTerminal = IsTerminalForeground();
+
                                 DataObject newData = new DataObject();
                                 newData.SetData(DataFormats.Bitmap, true, image);
-                                newData.SetData(DataFormats.UnicodeText, true, filename);
 
-                                // Retry setting clipboard
+                                StringCollection fileList = new StringCollection();
+                                fileList.Add(filename);
+                                newData.SetFileDropList(fileList);
+
+                                if (isTerminal)
+                                {
+                                    newData.SetData(DataFormats.UnicodeText, true, filename);
+                                }
+
                                 for (int i = 0; i < 5; i++)
                                 {
                                     try
@@ -130,26 +168,39 @@ namespace ScreenshotClipboardSync
                 }
                 catch
                 {
-                    // Silently ignore transient errors
                 }
                 finally
                 {
                     _isProcessing = false;
                 }
             }
+
+            private void CleanupOldScreenshots()
+            {
+                try
+                {
+                    string tempDir = Path.GetTempPath();
+                    DirectoryInfo di = new DirectoryInfo(tempDir);
+                    DateTime threshold = DateTime.Now.AddDays(-7);
+                    foreach (FileInfo file in di.GetFiles("screenshot_*.png"))
+                    {
+                        if (file.LastWriteTime < threshold)
+                        {
+                            try { file.Delete(); } catch { }
+                        }
+                    }
+                }
+                catch { }
+            }
         }
 
         [STAThread]
         private static void Main()
         {
-            // Ensure single instance
             bool createdNew;
             using (Mutex mutex = new Mutex(true, "ScreenshotClipboardSync_SingleInstance", out createdNew))
             {
-                if (!createdNew)
-                {
-                    return;
-                }
+                if (!createdNew) return;
 
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
