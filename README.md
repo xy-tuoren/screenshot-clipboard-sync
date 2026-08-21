@@ -1,5 +1,7 @@
 # screenshot-clipboard-sync (macOS & Windows)
 
+[English](README.md) | [简体中文](README_CN.md)
+
 > 🚀 **Auto-save clipboard screenshots to temp directory and attach the file path for instant terminal paste.**  
 > 截图自动存入系统临时目录（macOS: `/tmp` / Windows: `%TEMP%`），并把路径注入剪贴板，支持终端（Ghostty / Windows Terminal / iTerm2 / WezTerm）直接右键粘贴图片路径！
 
