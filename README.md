@@ -9,10 +9,11 @@
 
 ## ✨ Features (特性)
 
-- ⚡ **Zero-Click Terminal Paste**: Right-click (or `Ctrl+V` / `Cmd+V`) in your terminal to instantly paste the latest screenshot's temporary file path.
-- 🔄 **Dual-Flavor Clipboard**: Preserves both the image format (for WeChat, Lark, Slack, Figma, etc.) and text format (for terminals and text editors).
-- 🧹 **Auto-Cleanup**: All images are saved to the OS temporary directory (`/tmp` on macOS, `%TEMP%` on Windows), automatically wiped upon reboot. Zero disk clutter.
-- 🎯 **Universal Compatibility**: Works with **PixPin**, **Snipaste**, **CleanShot X**, **Windows Snipping Tool (`Win+Shift+S`)**, **macOS native screenshot (`Cmd+Ctrl+Shift+4`)**, and browser "Copy Image".
+- ⚡ **Zero-Click Terminal Paste**: Right-click (or `Ctrl+V` / `Cmd+V`) in your terminal to instantly paste the screenshot's escaped file path.
+- 🛡️ **Zero Text Pollution**: Uses native **File Object (`fileURL` / `FileDropList`) + Image format** instead of plain text strings. Web apps (ChatGPT, GitHub, Notion) upload real image attachments without inserting text paths!
+- 🧹 **Auto-Cleanup**: All images are saved to the OS temporary directory (`/tmp` on macOS, `%TEMP%` on Windows), automatically wiped upon reboot. Files older than 7 days are also automatically pruned.
+- 🔒 **Privacy Protection**: Files are saved with private POSIX permissions (`0600`), readable only by the current user.
+- 🎯 **Universal Compatibility**: Works with **macOS native screenshot (`Cmd+Ctrl+Shift+4`)**, **Windows Snipping Tool (`Win+Shift+S`)**, **WeChat / QQ screenshots**, **Snipaste**, **CleanShot X**, and browser "Copy Image".
 - 🪶 **Ultra Lightweight**: Pure native implementation (Swift on macOS, Win32/.NET on Windows), **0% CPU** idle usage.
 - 🤖 **Auto-Start**:
   - **macOS**: Managed via native `LaunchAgent`.

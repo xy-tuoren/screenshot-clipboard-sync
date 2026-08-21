@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -19,40 +17,7 @@ namespace ScreenshotClipboardSync
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-
         private const int WM_CLIPBOARDUPDATE = 0x031D;
-
-        private static bool IsTerminalForeground()
-        {
-            try
-            {
-                IntPtr hWnd = GetForegroundWindow();
-                if (hWnd == IntPtr.Zero) return false;
-
-                uint processId;
-                GetWindowThreadProcessId(hWnd, out processId);
-                if (processId == 0) return false;
-
-                using (Process proc = Process.GetProcessById((int)processId))
-                {
-                    string name = proc.ProcessName.ToLowerInvariant();
-                    string[] terminalProcesses = {
-                        "windowsterminal", "cmd", "powershell", "pwsh", "mintty",
-                        "conhost", "alacritty", "wezterm-gui", "ghostty", "warp"
-                    };
-                    return terminalProcesses.Any(t => name.Contains(t));
-                }
-            }
-            catch
-            {
-                return false;
-            }
-        }
 
         private class HiddenClipboardForm : Form
         {
@@ -113,42 +78,26 @@ namespace ScreenshotClipboardSync
 
                     if (data == null) return;
 
-                    if (data.GetDataPresent(DataFormats.Bitmap))
+                    // If clipboard has an image but no file-drop list yet
+                    if (data.GetDataPresent(DataFormats.Bitmap) && !data.GetDataPresent(DataFormats.FileDrop))
                     {
-                        string currentText = null;
-                        if (data.GetDataPresent(DataFormats.UnicodeText))
-                        {
-                            currentText = data.GetData(DataFormats.UnicodeText) as string;
-                        }
-
-                        string tempDir = Path.GetTempPath();
-                        if (!string.IsNullOrEmpty(currentText) && currentText.StartsWith(tempDir))
-                        {
-                            return;
-                        }
-
                         using (Image image = Clipboard.GetImage())
                         {
                             if (image != null)
                             {
+                                string tempDir = Path.GetTempPath();
                                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                                 string filename = Path.Combine(tempDir, $"screenshot_{timestamp}.png");
 
                                 image.Save(filename, ImageFormat.Png);
 
-                                bool isTerminal = IsTerminalForeground();
-
+                                // Gold Standard: Bitmap + FileDropList (No plain text string)
                                 DataObject newData = new DataObject();
                                 newData.SetData(DataFormats.Bitmap, true, image);
 
                                 StringCollection fileList = new StringCollection();
                                 fileList.Add(filename);
                                 newData.SetFileDropList(fileList);
-
-                                if (isTerminal)
-                                {
-                                    newData.SetData(DataFormats.UnicodeText, true, filename);
-                                }
 
                                 for (int i = 0; i < 5; i++)
                                 {

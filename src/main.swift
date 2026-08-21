@@ -4,9 +4,6 @@ class ClipboardWatcher {
     private var lastChangeCount: Int
     private let pasteboard = NSPasteboard.general
     private let dateFormatter: DateFormatter
-    
-    private var activeScreenshotData: Data?
-    private var activeScreenshotPath: String?
 
     init() {
         self.lastChangeCount = pasteboard.changeCount
@@ -15,14 +12,6 @@ class ClipboardWatcher {
         
         // Clean up screenshots older than 7 days on startup
         cleanupOldScreenshots()
-        
-        // Listen for frontmost application focus changes
-        NSWorkspace.shared.notificationCenter.addObserver(
-            self,
-            selector: #selector(applicationDidActivate(_:)),
-            name: NSWorkspace.didActivateApplicationNotification,
-            object: nil
-        )
     }
 
     func start() {
@@ -32,33 +21,6 @@ class ClipboardWatcher {
         RunLoop.main.run()
     }
 
-    private func isTerminalApp(_ app: NSRunningApplication?) -> Bool {
-        guard let app = app else { return false }
-        let bundleId = (app.bundleIdentifier ?? "").lowercased()
-        let name = (app.localizedName ?? "").lowercased()
-        let terms = ["ghostty", "terminal", "iterm", "wezterm", "alacritty", "kitty", "warp", "hyper", "rio"]
-        return terms.contains(where: { bundleId.contains($0) || name.contains($0) })
-    }
-
-    @objc private func applicationDidActivate(_ notification: Notification) {
-        guard let activePath = activeScreenshotPath,
-              let activeData = activeScreenshotData else { return }
-        
-        let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-        let isTerminal = isTerminalApp(app)
-        
-        // Check if clipboard still holds our screenshot
-        guard let types = pasteboard.types,
-              types.contains(.png) || types.contains(.tiff) else {
-            // User copied something else, reset active screenshot state
-            activeScreenshotData = nil
-            activeScreenshotPath = nil
-            return
-        }
-
-        updatePasteboard(pngData: activeData, filePath: activePath, forTerminal: isTerminal)
-    }
-
     private func checkClipboard() {
         let currentCount = pasteboard.changeCount
         guard currentCount != lastChangeCount else { return }
@@ -66,10 +28,11 @@ class ClipboardWatcher {
 
         guard let types = pasteboard.types else { return }
         let hasImage = types.contains(.png) || types.contains(.tiff)
-        let currentString = pasteboard.string(forType: .string)
+        let hasFileURL = types.contains(.fileURL) || types.contains(NSPasteboard.PasteboardType("NSFilenamesPboardType"))
 
-        // If user copied a new pure image
-        if hasImage && (currentString == nil || currentString!.isEmpty || !currentString!.hasPrefix("/tmp/screenshot_")) {
+        // If clipboard contains an image but does not yet have a file URL object
+        // (e.g. macOS native screenshot, WeChat/QQ screenshot, browser copy-image)
+        if hasImage && !hasFileURL {
             if let imgData = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff),
                let rep = NSBitmapImageRep(data: imgData),
                let pngData = rep.representation(using: .png, properties: [:]) {
@@ -82,41 +45,21 @@ class ClipboardWatcher {
                     // Set private permissions (0600 - Owner read/write only)
                     try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: filename)
                     
-                    self.activeScreenshotData = pngData
-                    self.activeScreenshotPath = filename
+                    // Gold Standard: Write PNG Data + FileURL (NSFilenamesPboardType)
+                    // No plain text string is written, avoiding text pollution in browsers!
+                    pasteboard.clearContents()
                     
-                    let frontApp = NSWorkspace.shared.frontmostApplication
-                    let isTerminal = isTerminalApp(frontApp)
+                    let item = NSPasteboardItem()
+                    item.setData(pngData, forType: .png)
+                    item.setString(fileURL.absoluteString, forType: .fileURL)
                     
-                    updatePasteboard(pngData: pngData, filePath: filename, forTerminal: isTerminal)
+                    pasteboard.writeObjects([item])
+                    lastChangeCount = pasteboard.changeCount
                 } catch {
                     fputs("Failed to save screenshot: \(error)\n", stderr)
                 }
             }
-        } else if !hasImage {
-            // Cleared or non-image copied
-            activeScreenshotData = nil
-            activeScreenshotPath = nil
         }
-    }
-
-    private func updatePasteboard(pngData: Data, filePath: String, forTerminal: Bool) {
-        pasteboard.clearContents()
-        
-        let item = NSPasteboardItem()
-        item.setData(pngData, forType: .png)
-        
-        let fileURL = URL(fileURLWithPath: filePath)
-        item.setString(fileURL.absoluteString, forType: .fileURL)
-        
-        if forTerminal {
-            // Terminal mode: Include plain text path so right-click pastes the file path
-            item.setString(filePath, forType: .string)
-        }
-        // Non-terminal mode (Browser/Chat): Do NOT attach .string, so web/chat apps paste/upload real image!
-        
-        pasteboard.writeObjects([item])
-        lastChangeCount = pasteboard.changeCount
     }
 
     private func cleanupOldScreenshots() {
