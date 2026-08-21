@@ -85,7 +85,10 @@ return config
 ### macOS
 * **Stop service (停止服务)**: `launchctl unload ~/Library/LaunchAgents/com.user.screenshot-clipboard-sync.plist`
 * **Start service (启动服务)**: `launchctl load ~/Library/LaunchAgents/com.user.screenshot-clipboard-sync.plist`
-* **Uninstall (一键卸载)**: `./uninstall.sh`
+* **Uninstall (一键卸载 - 自动停止服务并彻底清理)**:
+  ```bash
+  ./uninstall.sh
+  ```
 
 ### Windows (PowerShell)
 * **Check status (查看运行状态)**:
@@ -105,7 +108,7 @@ return config
   Stop-Process -Name "screenshot-clipboard-sync" -Force -ErrorAction SilentlyContinue
   Start-Process "$env:APPDATA\screenshot-clipboard-sync\screenshot-clipboard-sync.exe"
   ```
-* **Uninstall (一键卸载)**:
+* **Uninstall (一键卸载 - 自动停止服务并彻底清理)**:
   ```powershell
   .\windows\uninstall.ps1
   ```
