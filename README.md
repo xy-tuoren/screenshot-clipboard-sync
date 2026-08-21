@@ -115,6 +115,12 @@ return config
 
 ---
 
+## 🔗 Links (友链)
+
+- [LINUX DO](https://linux.do/) - 新的真理，新的世界
+
+---
+
 ## 📄 License
 
 MIT License. Feel free to use, modify, and distribute.
