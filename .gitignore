@@ -1,0 +1,5 @@
+.DS_Store
+*.log
+screenshot-clipboard-sync
+bin/
+build/
