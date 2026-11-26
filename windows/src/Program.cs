@@ -22,13 +22,22 @@ namespace ScreenshotClipboardSync
         private class HiddenClipboardForm : Form
         {
             private bool _isProcessing = false;
+            private readonly string _storageDir;
+            private readonly System.Windows.Forms.Timer _cleanupTimer;
 
             public HiddenClipboardForm()
             {
                 this.WindowState = FormWindowState.Minimized;
                 this.ShowInTaskbar = false;
                 this.FormBorderStyle = FormBorderStyle.None;
+                _storageDir = Path.Combine(Path.GetTempPath(), "screenshot-clipboard-sync");
+                Directory.CreateDirectory(_storageDir);
                 CleanupOldScreenshots();
+
+                _cleanupTimer = new System.Windows.Forms.Timer();
+                _cleanupTimer.Interval = 6 * 60 * 60 * 1000; // Every 6 hours
+                _cleanupTimer.Tick += (s, e) => CleanupOldScreenshots();
+                _cleanupTimer.Start();
             }
 
             protected override void OnLoad(EventArgs e)
@@ -40,6 +49,8 @@ namespace ScreenshotClipboardSync
 
             protected override void OnFormClosing(FormClosingEventArgs e)
             {
+                _cleanupTimer.Stop();
+                _cleanupTimer.Dispose();
                 RemoveClipboardFormatListener(this.Handle);
                 base.OnFormClosing(e);
             }
@@ -85,9 +96,13 @@ namespace ScreenshotClipboardSync
                         {
                             if (image != null)
                             {
-                                string tempDir = Path.GetTempPath();
+                                Directory.CreateDirectory(_storageDir);
                                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                                string filename = Path.Combine(tempDir, $"screenshot_{timestamp}.png");
+                                string shortId = Guid.NewGuid().ToString("N").Substring(0, 8);
+                                string filename = Path.Combine(
+                                    _storageDir,
+                                    string.Format("screenshot_{0}_{1}.png", timestamp, shortId)
+                                );
 
                                 image.Save(filename, ImageFormat.Png);
 
@@ -128,8 +143,8 @@ namespace ScreenshotClipboardSync
             {
                 try
                 {
-                    string tempDir = Path.GetTempPath();
-                    DirectoryInfo di = new DirectoryInfo(tempDir);
+                    if (!Directory.Exists(_storageDir)) return;
+                    DirectoryInfo di = new DirectoryInfo(_storageDir);
                     DateTime threshold = DateTime.Now.AddDays(-7);
                     foreach (FileInfo file in di.GetFiles("screenshot_*.png"))
                     {

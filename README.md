@@ -2,8 +2,8 @@
 
 [English](README.md) | [简体中文](README_CN.md)
 
-> 🚀 **Auto-save clipboard screenshots to temp directory and attach the file path for instant terminal paste.**  
-> 截图自动存入系统临时目录（macOS: `/tmp` / Windows: `%TEMP%`），并把路径注入剪贴板，支持终端（Ghostty / Windows Terminal / iTerm2 / WezTerm）直接右键粘贴图片路径！
+> 🚀 **Auto-save clipboard screenshots to your user temp directory and attach the file path for instant terminal paste.**<br>
+> 截图自动存入当前用户的私有临时目录（macOS: `$TMPDIR/screenshot-clipboard-sync` / Windows: `%TEMP%\screenshot-clipboard-sync`），并把文件对象注入剪贴板，支持终端（Ghostty / Windows Terminal / iTerm2 / WezTerm）直接右键粘贴图片路径！
 
 ---
 
@@ -11,8 +11,8 @@
 
 - ⚡ **Zero-Click Terminal Paste**: Right-click (or `Ctrl+V` / `Cmd+V`) in your terminal to instantly paste the screenshot's escaped file path.
 - 🛡️ **Zero Text Pollution**: Uses native **File Object (`fileURL` / `FileDropList`) + Image format** instead of plain text strings. Web apps (ChatGPT, GitHub, Notion) upload real image attachments without inserting text paths!
-- 🧹 **Auto-Cleanup**: All images are saved to the OS temporary directory (`/tmp` on macOS, `%TEMP%` on Windows), automatically wiped upon reboot. Files older than 7 days are also automatically pruned.
-- 🔒 **Privacy Protection**: Files are saved with private POSIX permissions (`0600`), readable only by the current user.
+- 🧹 **Auto-Cleanup**: All images are saved to the per-user OS temporary directory (`$TMPDIR/screenshot-clipboard-sync` on macOS, `%TEMP%\screenshot-clipboard-sync` on Windows). Files older than 7 days are automatically pruned on startup and every 6 hours while running.
+- 🔒 **Privacy Protection**: On macOS, screenshots are stored inside a `0700` per-user temp subdirectory and created atomically with `0600` (`O_EXCL | O_NOFOLLOW`) permissions, readable only by the current user.
 - 🎯 **Universal Compatibility**: Works with **macOS native screenshot (`Cmd+Ctrl+Shift+4`)**, **Windows Snipping Tool (`Win+Shift+S`)**, **WeChat / QQ screenshots**, **Snipaste**, **CleanShot X**, and browser "Copy Image".
 - 🪶 **Ultra Lightweight**: Pure native implementation (Swift on macOS, Win32/.NET on Windows), **0% CPU** idle usage.
 - 🤖 **Auto-Start**:

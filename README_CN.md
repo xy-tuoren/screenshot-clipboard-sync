@@ -24,9 +24,10 @@
 
 ## ✨ 核心特性
 
-- ⚡ **零按键粘贴**：截图完成后，在终端直接点击鼠标右键即可粘贴临时文件绝对路径（如 `/tmp/screenshot_20260821_105356.png`）。
-- 🔄 **双通道剪贴板（Dual-Flavor）**：同时保留图片通道与文本通道，聊天工具发图与终端贴路径互不冲突。
-- 🧹 **重启自动清空**：所有文件存放在系统的临时目录（macOS: `/tmp` / Windows: `%TEMP%`），电脑重启系统自动销毁，零磁盘垃圾。
+- ⚡ **零按键粘贴**：截图完成后，在终端直接点击鼠标右键即可粘贴临时文件绝对路径。
+- 🛡️ **零文本污染（File Object + Image）**：同时保留图片通道与原生文件对象通道，绝不写入纯文本，聊天工具发图与终端贴路径互不冲突。
+- 🔒 **用户级隐私隔离**：macOS 端将截图保存在当前用户私有临时目录（`$TMPDIR/screenshot-clipboard-sync`，目录权限 `0700`），并以 `0600`（`O_EXCL | O_NOFOLLOW`）原子创建文件，杜绝公共 `/tmp` 权限窗口与符号链接风险。
+- 🧹 **定时自动清理**：所有文件存放在用户专属临时目录（macOS: `$TMPDIR/screenshot-clipboard-sync` / Windows: `%TEMP%\screenshot-clipboard-sync`），启动时及运行期间每 6 小时自动清理 7 天前的旧截图。
 - 🎯 **全截图工具通用**：完美支持 **PixPin**、**Snipaste**、**CleanShot X**、**Windows 自带截图 (`Win+Shift+S`)**、**macOS 原生截图 (`Cmd+Ctrl+Shift+4`)** 以及浏览器“复制图片”。
 - 🪶 **原生极致轻量**：纯原生实现（macOS 使用 Swift，Windows 使用 Win32/.NET API），**0% CPU 占用**，内存仅占用数 MB。
 - 🤖 **开机静默自启**：
@@ -78,7 +79,7 @@ right-click-action = copy-or-paste
 ```
 
 ### Windows Terminal (Windows)
-Windows Terminal 原生支持右键直接粘贴剪贴板文本。
+Windows Terminal 原生支持右键直接粘贴剪贴板路径/文件对象。
 
 ### iTerm2 (macOS)
 打开 **Settings** -> **Pointer** -> **General**，将 **Right button** 设置为 **Paste from Clipboard**。
